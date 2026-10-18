@@ -1,0 +1,448 @@
+{
+  "info": {
+    "_postman_id": "c1f7a8b9-8e2b-4b9d-92a8-campuspulse01",
+    "name": "CampusPulse API v1",
+    "description": "Postman Collection for CampusPulse: Real-Time Campus Sensor Monitoring and Alert Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "organizerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sensorApiKey",
+      "value": "cp_gateway_test_key_12345",
+      "type": "string"
+    },
+    {
+      "key": "sampleRuleId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "sampleAlertId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Probes",
+      "item": [
+        {
+          "name": "Liveness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "live"]
+            }
+          }
+        },
+        {
+          "name": "Readiness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "ready"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Organizer Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('organizerToken', jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@campus.edu\",\n  \"password\": \"AdminPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Create Sensor Client Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.api_key) {",
+                  "    pm.collectionVariables.set('sensorApiKey', jsonData.api_key);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"new-iot-gateway\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sensor-clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "sensor-clients"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sensor Ingestion",
+      "item": [
+        {
+          "name": "Submit Single Reading (SDD Example)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{sensorApiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sensorId\": \"library-floor-2\",\n  \"type\": \"temperature\",\n  \"value\": 34.5,\n  \"timestamp\": \"2026-10-18T10:30:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/readings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "readings"]
+            }
+          }
+        },
+        {
+          "name": "Submit Batch Readings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{sensorApiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"sensorId\": \"library-floor-2\",\n    \"type\": \"temperature\",\n    \"value\": 31.0,\n    \"timestamp\": \"2026-10-18T10:30:00Z\"\n  },\n  {\n    \"sensorId\": \"science-lab-1\",\n    \"type\": \"air_quality\",\n    \"value\": 42.0,\n    \"timestamp\": \"2026-10-18T10:30:00Z\"\n  }\n]"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/readings/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "readings", "batch"]
+            }
+          }
+        },
+        {
+          "name": "Query Readings (Organizer)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/readings?sensor_id=library-floor-2&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "readings"],
+              "query": [
+                {
+                  "key": "sensor_id",
+                  "value": "library-floor-2"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alert Rules",
+      "item": [
+        {
+          "name": "Create Threshold Rule (SDD Example)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Library high temperature\",\n  \"metricType\": \"temperature\",\n  \"scope\": {\n    \"sensorIds\": [\"library-floor-2\"]\n  },\n  \"condition\": {\n    \"kind\": \"threshold\",\n    \"operator\": \">\",\n    \"value\": 32.0\n  },\n  \"severity\": \"high\",\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rules"]
+            }
+          }
+        },
+        {
+          "name": "Create Time-Window Rule (SDD Example)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Library ten-minute average\",\n  \"metricType\": \"temperature\",\n  \"scope\": {\n    \"sensorIds\": [\"library-floor-2\"]\n  },\n  \"condition\": {\n    \"kind\": \"window\",\n    \"aggregation\": \"avg\",\n    \"windowSeconds\": 600,\n    \"operator\": \">\",\n    \"value\": 30.0\n  },\n  \"severity\": \"high\",\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rules"]
+            }
+          }
+        },
+        {
+          "name": "List Rules",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rules"]
+            }
+          }
+        },
+        {
+          "name": "Disable Rule",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rules/{{sampleRuleId}}/disable",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rules", "{{sampleRuleId}}", "disable"]
+            }
+          }
+        },
+        {
+          "name": "Enable Rule",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rules/{{sampleRuleId}}/enable",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rules", "{{sampleRuleId}}", "enable"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alert Operations",
+      "item": [
+        {
+          "name": "List Alerts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/alerts?status=open",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "alerts"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Acknowledge Alert",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/alerts/{{sampleAlertId}}/acknowledge",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "alerts", "{{sampleAlertId}}", "acknowledge"]
+            }
+          }
+        },
+        {
+          "name": "Resolve Alert",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/alerts/{{sampleAlertId}}/resolve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "alerts", "{{sampleAlertId}}", "resolve"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
